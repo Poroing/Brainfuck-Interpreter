@@ -386,6 +386,7 @@ private:
 	}
 
 	void read_console_brainfuck(std::string const& input) {
+		//Verify is the bracket are correct and run code entered in console
 		if (is_usable_code(input)) {
 			read_string(input);
 			run_code_part(m_current_action);

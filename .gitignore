@@ -1,3 +1,9 @@
+#Visual studio solution
+*.sdf
+*.opensdf
+*.suo
+*.vcxproj.user
+
 # Compiled Object files
 *.slo
 *.lo

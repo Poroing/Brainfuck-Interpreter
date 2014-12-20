@@ -3,6 +3,7 @@
 *.opensdf
 *.suo
 *.vcxproj.user
+Debug/
 
 # Compiled Object files
 *.slo

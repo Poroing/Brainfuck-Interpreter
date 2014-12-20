@@ -12,6 +12,9 @@
 #include <fstream>
 #include <iterator>
 
+//Split function to separate args 
+//taken from the console taken from the article 'http://www.cplusplus.com/articles/2wA0RXSz/' 
+//with a little modification
 void split(std::vector<std::string>& v, std::string const& s, char del = ' ') {
 	std::string buff;
 	for (char c : s) {
@@ -48,6 +51,8 @@ struct cell_out_of_range : std::exception {
 	const char* what() const throw() { return e_what; };
 };
 
+//Flag used to know how to run the interpreter
+//Could be use later for state and other
 enum class Flag {
 	empty = 0x00,
 	file = 0x01,
@@ -85,6 +90,8 @@ private:
 
 	Flag m_flag;
 
+	static const std::string CONSOLE_HELP;
+
 public:
 
 	static const std::set<char> BF_CHAR;
@@ -94,7 +101,7 @@ public:
 
 	//Create the Interpreter from a string
 	BFInterpreter(std::string const& code, std::ostream& out, std::istream& in) :
-		m_prompt("-->"),
+		m_prompt(":::"),
 		m_flag(Flag::empty) {
 		m_in = &in;
 		m_out = &out;
@@ -323,6 +330,10 @@ private:
 		args.erase(args.begin());
 		try {
 			switch (INPUT_TO_ACTION.at(command)) {
+			case ConsoleAction::HELP:
+				//Show the help message
+				command_help();
+				break;
 			case ConsoleAction::END:
 				//Reset all velue to start a new brainfuck session
 				command_end();
@@ -353,6 +364,10 @@ private:
 		catch (std::invalid_argument e) {
 			*m_out << e.what();
 		}
+	}
+
+	void command_help() throw() {
+		*m_out << CONSOLE_HELP;
 	}
 
 	void command_end() throw() {
@@ -396,13 +411,33 @@ private:
 	
 };
 
+//All valid brainfuck character
 const std::set<char> BFInterpreter::BF_CHAR = { '>', '<', '+', '-', ',', '.', '[', ']' };
+//All shells command
 const std::map<std::string, BFInterpreter::ConsoleAction> BFInterpreter::INPUT_TO_ACTION = { { "end", BFInterpreter::ConsoleAction::END },
 																							 { "exit", BFInterpreter::ConsoleAction::EXIT },
 																							 { "cell", BFInterpreter::ConsoleAction::CELL },
 																							 { "code", BFInterpreter::ConsoleAction::CODE },
 																							 { "prompt", BFInterpreter::ConsoleAction::PROMPT },
 																							 { "help", BFInterpreter::ConsoleAction::HELP } };
+const std::string BFInterpreter::CONSOLE_HELP = {
+	"You are in the console mode the different thing you can do are:\n"\
+	"\n"\
+	"run brainfuck command separatly or on the same line like so:\n"\
+	":::+++\n"\
+	":::[>+++++<\n"\
+	":::-]++>.\n"\
+	"They can be ran all in the order, since you don't write more ending brackets than opening brackets\n"\
+	"\n"\
+	"There is also 6 command that you can run:\n"\
+	"'end' : end the brainfuck script started and start a new one\n"\
+	"'cell [<index>]' : show the index of the cell and his value in decimal, index is the current pointed cell\n"\
+	"'code' : show the entire code that the interpreter have runned in the current script\n"\
+	"'prompt <new_prompt>' : change the prompt, is just for fun or for your eyes ;) \n"\
+	"'help' : show this message\n"\
+	"\n"\
+	"I wish you are having fun with this little piece of software\n"
+};
 
 
 
@@ -427,10 +462,12 @@ void load_file(std::string& code, char* const& path) {
 		if (BFInterpreter::is_valid_brainfuck_char(read_char)) code += read_char;
 }
 
+//Enum class use for bitflag to identify which args has been used
 enum class Args { 
 	F = 0x01,
 	C = 0x02,
-	B = 0x04 };
+	B = 0x04,
+	H = 0x08};
 
 Args operator| (Args const& a, Args const& b) throw() {
 	return Args(static_cast<int>(a) | static_cast<int>(b));
@@ -440,14 +477,31 @@ int operator& (Args const& a, Args const& b) throw() {
 	return static_cast<int>(a)& static_cast<int>(b);
 }
 
+const std::string HELP = {
+	"BFInterpreter [-h] [-f <file path> | -c | -b <code>]\n"\
+	"\n"\
+	"-h\tDisplay this help message\n"\
+	"\n"\
+	"-f <file path> read brainfuck from a file\n"\
+	"-c run the interpreter in console mode\n"\
+	"-b <code> run the as braifuck code the string pass as code\n"
+};
+
 void handle_args(BFInterpreter& interpreter, int argc, char* argv[]) {
 	std::string code;
+	//Set the args flag to no args entered
 	Args args_set(static_cast<Args>(0));
+	//If no argument are used the Interpreter is put in console mode
 	if (argc == 1) interpreter.set_console();
+	//Iteration over the argument
 	for (int i(1); i != argc; ++i) {
 		if (*argv[i] == '-') {
 			try {
 				switch (*(argv[i] + 1)) {
+				case 'h':
+					std::cout << HELP;
+					args_set = args_set | Args::H;
+					break;
 				case 'f':
 					if (args_set & Args::C) throw std::invalid_argument("'-f' and '-c' are unusable together\n");
 					if (args_set & Args::B) throw std::invalid_argument("'-f' and '-b' are unsunabe together\n");
@@ -472,6 +526,8 @@ void handle_args(BFInterpreter& interpreter, int argc, char* argv[]) {
 					interpreter.set_code(argv[i]);
 					break;
 				}
+				//If the '-h' arg has been used we don't need to check for other args
+				if (args_set & Args::H) break;
 			}
 			catch (std::invalid_argument e) {
 				throw e;
@@ -488,7 +544,7 @@ int main(int argc, char* argv[]) {
 	}
 	catch (std::invalid_argument e) {
 		std::cout << e.what();
-		std::cout << "The command must be run like this:\nBFInterpreter -f \"file path\" | -c | -b \"code\"\n";
+		std::cout << "The command must be run like this:\nBFInterpreter [-h] [-f 'file path' | -c | -b 'code']\n";
 	}
 	catch (std::runtime_error e) {
 		std::cout << e.what();

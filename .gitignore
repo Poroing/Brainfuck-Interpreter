@@ -3,6 +3,8 @@
 *.opensdf
 *.suo
 *.vcxproj.user
+*.vcxproj
+*.vcxproj.filters
 Debug/
 
 # Compiled Object files

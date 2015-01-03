@@ -160,11 +160,11 @@ public:
 		return true;
 	}
 
-	inline static bool is_valid_brainfuck_char(char const& c);
+	inline static bool is_valid_brainfuck_char(char const& c) throw();
 
-	inline static bool is_valid_console_input(std::string const& s);
+	inline static bool is_valid_console_input(std::string const& s) throw();
 
-	inline bool is_valid_input(std::string const& s);
+	inline bool is_valid_input(std::string const& s) throw();
 
 private: 	
 
@@ -179,11 +179,11 @@ private:
 	}
 
 	void end_loop() {
-		if (m_cell_vector[m_current_cell] == 0) m_loop_stack.pop();
-		else {
-			m_current_action = m_loop_stack.top();
+		if (m_cell_vector[m_current_cell] == 0) {
+			m_loop_stack.pop();
 			--m_in_loop;
 		}
+		else m_current_action = m_loop_stack.top();
 	}
 
 	void plus() {
@@ -533,6 +533,9 @@ void handle_args(BFInterpreter& interpreter, int argc, char* argv[]) {
 				throw e;
 			}
 		}
+		else {
+			throw std::invalid_argument("Argument unknown\n");
+		}
 	}
 }
 
@@ -544,7 +547,7 @@ int main(int argc, char* argv[]) {
 	}
 	catch (std::invalid_argument e) {
 		std::cout << e.what();
-		std::cout << "The command must be run like this:\nBFInterpreter [-h] [-f 'file path' | -c | -b 'code']\n";
+		std::cout << "The command must be run like this:\n" << argv[0] << "[-h] [-f 'file path' | -c | -b 'code']\n";
 	}
 	catch (std::runtime_error e) {
 		std::cout << e.what();

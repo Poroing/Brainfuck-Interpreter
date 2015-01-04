@@ -291,10 +291,15 @@ void BFInterpreter::command_end() throw() {
 	m_current_action = 0;
 }
 
-void BFInterpreter::command_cell(std::vector<std::string> const& Flag) const {
-	if (Flag.size() > 1) throw invalid_argument_number("cell", "1 or 0", Flag.size());
-	unsigned int cell = m_current_cell;
-	if (!Flag.empty() && !(std::stringstream(Flag[0]) >> cell)) throw std::invalid_argument("'cell' take an integer as argument\n");
+void BFInterpreter::command_cell(std::vector<std::string> const& arg) const {
+	//Check first character of first argument
+	if (arg.empty()) {
+		print_vector(*m_out, m_cell_vector, 
+			[](char const& c) { return static_cast<int>(c) });
+	}
+	if (arg[0][0] == '-')
+	unsigned int cell = 0;
+	if (!arg.empty() && !(std::stringstream(arg[0]) >> cell)) throw std::invalid_argument("'cell' take integers as argument\n");
 	if (cell >= m_cell_vector.size()) throw cell_out_of_range(cell);
 	*m_out << "Cell: " << cell << " with value: " << static_cast<int>(m_cell_vector[cell]) << std::endl;
 }

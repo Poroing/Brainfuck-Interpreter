@@ -8,6 +8,9 @@
 *.vcxproj.filters
 Debug/
 
+#Cmake build file
+build/
+
 # Compiled Object files
 *.slo
 *.lo

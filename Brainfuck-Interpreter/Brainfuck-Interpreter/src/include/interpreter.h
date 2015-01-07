@@ -54,7 +54,7 @@ public:
 	void set_file() throw();
 	bool file() const throw();
 
-	void set_code(std::string const& code);
+	void set_code(std::string const& code) throw();
 	bool is_usable_code(std::string const& code) const throw();
 
 	inline static bool is_valid_brainfuck_char(char const& c) throw();

@@ -14,21 +14,32 @@ std::ostream& operator<< (std::ostream& os, std::vector<T> const& v) {
 	auto it = v.begin();
 	os << '[' << *it;
 	++it;
-	for (; it != v.end(); ++it) {
+	for (; it != v.end(); ++it)
 		os << ',' << *it;
-	}
 	os << ']';
 };
 
-template<typename T, typename U>
-void print_vector(std::ostream& os, std::vector<T> const& v, std::function<U(T)> const& foo) {
+template<typename T, class TypeReturningFunc>
+void print_vector(std::ostream& os, 
+				  std::vector<T> const& v, 
+				  TypeReturningFunc const& foo) {
 	auto it = v.begin();
 	os << '[' << foo(*it);
 	++it;
-	for (; it != v.end(); ++it) {
+	for (; it != v.end(); ++it)
 		os << ',' << foo(*it);
-	}
 	os << ']';
 };
+
+template<class InputIterator, class TypeReturningFunc>
+void print_array(std::ostream& os, 
+				 InputIterator first, InputIterator const& last, 
+				 TypeReturningFunc const& foo) {
+	os << '[' << foo(*first);
+	++first;
+	for (;first != last; ++first)
+		os << ',' << foo(*first);
+	os << ']';
+}
 
 #endif

@@ -6,6 +6,20 @@
 #include <numeric>
 #include <sstream>
 
+
+inline bool BFInterpreter::is_valid_brainfuck_char(char const& c) throw() {
+	return BFInterpreter::BF_CHAR.find(c) != BFInterpreter::BF_CHAR.end();
+}
+
+inline bool BFInterpreter::is_valid_console_input(std::string const& s) throw() {
+	return BFInterpreter::INPUT_TO_ACTION.find(s) != BFInterpreter::INPUT_TO_ACTION.end();
+}
+
+inline bool BFInterpreter::is_valid_input(std::string const& s) throw() {
+	return is_valid_console_input(s)
+		|| std::all_of(s.begin(), s.end(), &is_valid_brainfuck_char);
+}
+
 //Flag used to know how to run the interpreter
 //Could be use later for state and other
 enum class Flag {
@@ -75,7 +89,7 @@ bool BFInterpreter::file() const throw() {
 	return m_flag & Flag::file;
 }
 
-void BFInterpreter::set_code(std::string const& code) {
+void BFInterpreter::set_code(std::string const& code) throw() {
 	m_code = code;
 }
 
@@ -91,7 +105,7 @@ bool BFInterpreter::is_usable_code(std::string const& code) const throw() {
 
 //---BRAINFUCK BASIC ACTION---
 
-void BFInterpreter::start_loop() {
+void BFInterpreter::start_loop() throw() {
 	++m_in_loop;
 	if (m_cell_vector[m_current_cell] != 0) {
 		m_loop_stack.push(m_current_action); //Save the place where the loop start			
@@ -99,7 +113,7 @@ void BFInterpreter::start_loop() {
 	else ++m_wait_for_end_loop;
 }
 
-void BFInterpreter::end_loop() {
+void BFInterpreter::end_loop() throw() {
 	if (m_cell_vector[m_current_cell] == 0) {
 		m_loop_stack.pop();
 		--m_in_loop;
@@ -107,38 +121,38 @@ void BFInterpreter::end_loop() {
 	else m_current_action = m_loop_stack.top();
 }
 
-void BFInterpreter::plus() {
+void BFInterpreter::plus() throw() {
 	//Increment the pointed cell's value
 	++m_cell_vector[m_current_cell];
 }
 
-void BFInterpreter::minus() {
+void BFInterpreter::minus() throw() {
 	//Decrement the pointed cell's value
 	--m_cell_vector[m_current_cell];
 }
 
-void BFInterpreter::left() {
+void BFInterpreter::left() throw() {
 	//Move the pointer to the left
 	if (m_current_cell != 0) --m_current_cell;
 }
 
-void BFInterpreter::right() {
+void BFInterpreter::right() throw() {
 	//Move the pointer to the right
 	if (++m_current_cell == m_cell_vector.size()) m_cell_vector.push_back(0);
 }
 
-void BFInterpreter::input() {
+void BFInterpreter::input() throw() {
 	//Ask the user to enter an input
 	m_in->get(m_cell_vector[m_current_cell]);
 }
 
-void BFInterpreter::output() {
+void BFInterpreter::output() throw() {
 	//Prompt the pointed cell value
 	m_out->put(m_cell_vector[m_current_cell]);
 	if (m_running_console) *m_out << std::endl;
 }
 
-void BFInterpreter::execute_action(char const& action) {
+void BFInterpreter::execute_action(char const& action) throw() {
 	//Execute the action if the program don't have to end a loop
 	if (m_wait_for_end_loop == 0) {
 		switch (action) {
@@ -184,17 +198,17 @@ void BFInterpreter::execute_action(char const& action) {
 
 //---HELPING METHODS---
 
-void BFInterpreter::run_code_part(int start) {
-for (m_current_action = start; m_current_action != m_code.size(); ++m_current_action)
-	execute_action(m_code[m_current_action]);
+void BFInterpreter::run_code_part(int start) throw() {
+	for (m_current_action = start; m_current_action != m_code.size(); ++m_current_action)
+		execute_action(m_code[m_current_action]);
 };
 
-void BFInterpreter::run_file(int start) {
-initialize();
-run_code_part(start);
+void BFInterpreter::run_file(int start) throw() {
+	initialize();
+	run_code_part(start);
 }
 
-void BFInterpreter::run_console() {
+void BFInterpreter::run_console() throw() {
 	m_running_console = true;
 	initialize();
 	m_current_action = 0;
@@ -221,7 +235,7 @@ void BFInterpreter::run_console() {
 	}
 }
 
-void BFInterpreter::initialize() {
+void BFInterpreter::initialize() throw() {
 	//Set all value to their default state
 	m_current_cell = 0;
 	m_cell_vector = std::vector<char>(1, 0);
@@ -292,16 +306,45 @@ void BFInterpreter::command_end() throw() {
 }
 
 void BFInterpreter::command_cell(std::vector<std::string> const& arg) const {
-	//Check first character of first argument
-	if (arg.empty()) {
-		print_vector(*m_out, m_cell_vector, 
-			[](char const& c) { return static_cast<int>(c) });
+	//Throw exception if to much arguments has been pass
+	if (arg.size() > 3) throw invalid_argument_number("cell", "less than 3", arg.size());
+	
+	//If no argument has been passed or '-a' has been passed all the integer value of the cells ar printed
+	if (arg.empty() 
+		|| (arg[0] == "-a" && arg.size() != 2)) {
+		//'-a' or no args has been passed so we show a range of cells
+		auto first = m_cell_vector.begin();
+		auto end = m_cell_vector.end();
+
+		if (arg.size() == 3) {
+			//If some args has been passed we show a specified range
+			unsigned int range[2];
+			for (int i(0); i != 2; ++i)
+				if (!(std::stringstream(arg[i + 1]) >> range[i])) 
+					throw std::invalid_argument("'-a' takes integers as argument\n");
+			if (range[0] > range[1]) throw std::invalid_argument("first can't be greater than end");
+			first += range[0];
+			end = m_cell_vector.begin() + range[1] + 1;
+		}
+
+		print_array(*m_out, first, end, 
+			[](char const& c) throw() { return static_cast<int>(c); });
+		*m_out << std::endl;
+	} 
+
+	else if (arg[0] == "-c" && arg.size() < 3) {
+		//'-c' has been passed so we show the value of one cell
+		unsigned int cell = m_current_cell;
+		
+		//if 1 argument has been passed and it is not an integer we throw an exception
+		if (arg.size() == 2)
+			if (!(std::stringstream(arg[1]) >> cell)) 
+				throw std::invalid_argument("'-c' take integers as argument\n");
+		
+		if (cell >= m_cell_vector.size()) throw cell_out_of_range(cell);
+		*m_out << "Cell: " << cell << " with value: " << static_cast<int>(m_cell_vector[cell]) << std::endl;
 	}
-	if (arg[0][0] == '-')
-	unsigned int cell = 0;
-	if (!arg.empty() && !(std::stringstream(arg[0]) >> cell)) throw std::invalid_argument("'cell' take integers as argument\n");
-	if (cell >= m_cell_vector.size()) throw cell_out_of_range(cell);
-	*m_out << "Cell: " << cell << " with value: " << static_cast<int>(m_cell_vector[cell]) << std::endl;
+	else throw std::invalid_argument("this command syntax is:\ncell -a [<first> <end>] | -c [<pos>]");
 }
 
 void BFInterpreter::command_code() const throw() {
@@ -319,7 +362,7 @@ void BFInterpreter::command_prompt(std::vector<std::string> const& args) {
 	m_prompt = std::accumulate(args.begin(), args.end(), std::string());
 }
 
-void BFInterpreter::read_console_brainfuck(std::string const& input) {
+void BFInterpreter::read_console_brainfuck(std::string const& input) throw() {
 	//Verify is the bracket are correct and run code entered in console
 	if (is_usable_code(input)) {
 		read_string(input);
@@ -355,18 +398,3 @@ const std::string BFInterpreter::CONSOLE_HELP = {
 	"\n"\
 	"I wish you are having fun with this little piece of software\n"
 };
-
-
-
-inline bool BFInterpreter::is_valid_brainfuck_char(char const& c) throw() {
-	return BFInterpreter::BF_CHAR.find(c) != BFInterpreter::BF_CHAR.end();
-}
-
-inline bool BFInterpreter::is_valid_console_input(std::string const& s) throw() {
-	return BFInterpreter::INPUT_TO_ACTION.find(s) != BFInterpreter::INPUT_TO_ACTION.end();
-}
-
-inline bool BFInterpreter::is_valid_input(std::string const& s) throw() {
-	return is_valid_console_input(s)
-		|| std::all_of(s.begin(), s.end(), &is_valid_brainfuck_char);
-}

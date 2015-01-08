@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <functional>
+#include <exception>
+#include <sstream>
 #include <vector>
 #include <string>
 
@@ -40,6 +42,40 @@ void print_array(std::ostream& os,
 	for (;first != last; ++first)
 		os << ',' << foo(*first);
 	os << ']';
+}
+
+template<class Container>
+void point_cell(std::ostream& os, Container const& c, unsigned int const& pos) {
+	if (pos > c.size()) throw std::runtime_error("pos out of bound ");
+	std::string pointer;
+	std::stringstream ss("");
+	for (auto it = c.begin(); it != c.begin() + pos; ++it) {
+		ss << *it;
+		if (!ss) throw std::runtime_error("The returning value of foo must be printable");
+		pointer += ' ';
+		for (int i(0); i != ss.str().size(); ++i)
+			pointer += ' ';
+		ss.str("");
+	}
+	pointer += "^\n";
+	os << pointer;
+}
+
+template<class Container, class TypeReturningFunc>
+void point_cell(std::ostream& os, Container const& c, unsigned int const& pos, TypeReturningFunc const& foo) {
+	if (pos > c.size()) throw std::runtime_error("pos out of bound ");
+	std::string pointer(" ");
+	std::stringstream ss("");
+	for (auto it = c.begin(); it != c.begin() + pos; ++it) {
+		ss << foo(*it);
+		if (!ss) throw std::runtime_error("The returning value of foo must be printable");
+		pointer += ' ';
+		for (int i(0); i != ss.str().size(); ++i)
+			pointer += ' ';
+		ss.str("");
+	}
+	pointer += "^\n";
+	os << pointer;
 }
 
 #endif

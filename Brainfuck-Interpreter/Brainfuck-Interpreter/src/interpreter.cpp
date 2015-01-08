@@ -305,6 +305,8 @@ void BFInterpreter::command_end() throw() {
 	m_current_action = 0;
 }
 
+
+
 void BFInterpreter::command_cell(std::vector<std::string> const& arg) const {
 	//Throw exception if to much arguments has been pass
 	if (arg.size() > 3) throw invalid_argument_number("cell", "less than 3", arg.size());
@@ -313,24 +315,28 @@ void BFInterpreter::command_cell(std::vector<std::string> const& arg) const {
 	if (arg.empty() 
 		|| (arg[0] == "-a" && arg.size() != 2)) {
 		//'-a' or no args has been passed so we show a range of cells
-		auto first = m_cell_vector.begin();
-		auto end = m_cell_vector.end();
+		unsigned int range[2] {0, m_cell_vector.size() - 1};
 
 		if (arg.size() == 3) {
 			//If some args has been passed we show a specified range
-			unsigned int range[2];
 			for (int i(0); i != 2; ++i)
 				if (!(std::stringstream(arg[i + 1]) >> range[i])) 
 					throw std::invalid_argument("'-a' takes integers as argument\n");
-			if (range[0] > range[1]) throw std::invalid_argument("first can't be greater than end");
-			first += range[0];
-			end = m_cell_vector.begin() + range[1] + 1;
+			
+			if (range[0] > range[1]) throw std::invalid_argument("first can't be greater than end\n");
 		}
 
-		print_array(*m_out, first, end, 
+		print_array(*m_out, 
+			m_cell_vector.begin() + range[0], 
+			m_cell_vector.begin() + range[1] + 1, 
 			[](char const& c) throw() { return static_cast<int>(c); });
 		*m_out << std::endl;
-	} 
+
+		point_cell(*m_out, 
+			m_cell_vector, 
+			m_current_cell - range[0],
+			[](char const& c) throw() { return static_cast<int>(c); });
+	}
 
 	else if (arg[0] == "-c" && arg.size() < 3) {
 		//'-c' has been passed so we show the value of one cell
@@ -342,9 +348,10 @@ void BFInterpreter::command_cell(std::vector<std::string> const& arg) const {
 				throw std::invalid_argument("'-c' take integers as argument\n");
 		
 		if (cell >= m_cell_vector.size()) throw cell_out_of_range(cell);
+		
 		*m_out << "Cell: " << cell << " with value: " << static_cast<int>(m_cell_vector[cell]) << std::endl;
 	}
-	else throw std::invalid_argument("this command syntax is:\ncell -a [<first> <end>] | -c [<pos>]");
+	else throw std::invalid_argument("this command syntax is:\ncell -a [<first> <end>] | -c [<pos>]\n");
 }
 
 void BFInterpreter::command_code() const throw() {
